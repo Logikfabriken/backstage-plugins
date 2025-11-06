@@ -53,3 +53,8 @@ catalog:
       target: ./examples/org.yaml
       rules:
         - allow: [User, Group]
+
+repoInsights:
+  repoUrl: ${REPO_INSIGHTS_REPO_URL}
+  defaultLookbackDays: ${REPO_INSIGHTS_DEFAULT_LOOKBACK_DAYS:90}
+  githubTokenEnv: ${REPO_INSIGHTS_GITHUB_TOKEN_ENV:GITHUB_TOKEN}

@@ -111,3 +111,8 @@ kubernetes:
 permission:
   # setting this to `false` will disable permissions
   enabled: true
+
+repoInsights:
+  repoUrl: https://github.com/Logikfabriken/OH_NO_We_are_out_of_coffee
+  defaultLookbackDays: 90
+  githubTokenEnv: GITHUB_TOKEN
