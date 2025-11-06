@@ -3,6 +3,6 @@ export interface Config {
     repoUrl: string;
     defaultLookbackDays?: number;
     githubTokenEnv?: string;
+    useMockData?: boolean;
   };
 }
-

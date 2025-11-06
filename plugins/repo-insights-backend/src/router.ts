@@ -13,6 +13,7 @@ import {
 import { TTLCache } from './cache';
 import { parseRepoUrl, readRepoInsightsConfig } from './config';
 import { createGithubClient, resolveGithubToken } from './githubClient';
+import { buildMockMetrics } from './mockData';
 import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
 
 const metricsCache = new TTLCache<RepoInsightsMetrics>(15 * 60 * 1000);
@@ -41,8 +42,13 @@ export async function createRouter({ logger, config }: RouterDeps) {
   const pluginConfig = readRepoInsightsConfig(config);
   const repoCoordinates = parseRepoUrl(pluginConfig.repoUrl);
   const repoKey = `${repoCoordinates.owner}/${repoCoordinates.repo}`;
-  const githubToken = resolveGithubToken(pluginConfig.githubTokenEnv);
-  const octokit = createGithubClient({ token: githubToken, logger });
+  const useMockData = pluginConfig.useMockData ?? false;
+  const octokit = useMockData
+    ? undefined
+    : createGithubClient({
+        token: resolveGithubToken(pluginConfig.githubTokenEnv),
+        logger,
+      });
   const winstonLogger = loggerToWinstonLogger(logger);
 
   router.get('/metrics', async (req, res, next) => {
@@ -65,6 +71,27 @@ export async function createRouter({ logger, config }: RouterDeps) {
     const cached = metricsCache.get(cacheKey);
     if (cached) {
       return res.json(cached);
+    }
+
+    if (useMockData) {
+      const metrics = buildMockMetrics({
+        repoCoordinates,
+        repoUrl: pluginConfig.repoUrl,
+        lookbackDays,
+      });
+      metricsCache.set(cacheKey, metrics);
+      winstonLogger.debug('repo-insights mock metrics served', {
+        repo: repoKey,
+        lookbackDays,
+      });
+      return res.json(metrics);
+    }
+
+    if (!octokit) {
+      res
+        .status(500)
+        .json({ error: 'GitHub client is not configured for repo-insights' });
+      return;
     }
 
     try {

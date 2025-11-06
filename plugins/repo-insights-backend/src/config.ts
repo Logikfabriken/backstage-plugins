@@ -11,6 +11,7 @@ const schema = z.object({
   repoUrl: z.string().url(),
   defaultLookbackDays: z.number().int().positive().max(365).default(90),
   githubTokenEnv: z.string().min(1).default('GITHUB_TOKEN'),
+  useMockData: z.boolean().default(false),
 });
 
 export type RepoInsightsConfig = z.infer<typeof schema>;
@@ -20,6 +21,7 @@ export function readRepoInsightsConfig(config: Config): RepoInsightsConfig {
     repoUrl: config.getOptionalString('repoInsights.repoUrl'),
     defaultLookbackDays: config.getOptionalNumber('repoInsights.defaultLookbackDays'),
     githubTokenEnv: config.getOptionalString('repoInsights.githubTokenEnv'),
+    useMockData: config.getOptionalBoolean('repoInsights.useMockData'),
   };
 
   const parsed = schema.safeParse(raw);
