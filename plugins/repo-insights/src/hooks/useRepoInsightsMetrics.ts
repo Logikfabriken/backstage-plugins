@@ -7,7 +7,7 @@ import {
 import { ResponseError } from '@backstage/errors';
 import { RepoInsightsMetricsResponse } from '../api/types';
 
-export function useRepoInsightsMetrics(lookbackDays: number) {
+export function useRepoInsightsMetrics() {
   const fetchApi = useApi(fetchApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const [data, setData] = useState<RepoInsightsMetricsResponse | undefined>();
@@ -27,7 +27,7 @@ export function useRepoInsightsMetrics(lookbackDays: number) {
       setError(undefined);
       const baseUrl = await discoveryApi.getBaseUrl('repo-insights');
       fetchApi
-        .fetch(`${baseUrl}/metrics?lookbackDays=${lookbackDays}`, {
+        .fetch(`${baseUrl}/metrics`, {
           signal: controller.signal,
         })
         .then(async response => {
@@ -57,7 +57,7 @@ export function useRepoInsightsMetrics(lookbackDays: number) {
       };
     };
     fetchMetaData();
-  }, [fetchApi, lookbackDays, refreshIndex]);
+  }, [fetchApi, refreshIndex, discoveryApi]);
 
   return { data, loading, error, refresh };
 }

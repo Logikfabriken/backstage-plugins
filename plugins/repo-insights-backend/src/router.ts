@@ -1,7 +1,5 @@
 import { Router } from 'express';
 import { Config } from '@backstage/config';
-import { InputError } from '@backstage/errors';
-import { loggerToWinstonLogger } from '@backstage/backend-common';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import pLimit from 'p-limit';
 import {
@@ -46,11 +44,8 @@ export async function createRouter({ logger, config }: RouterDeps) {
         logger,
       });
 
-  router.get('/metrics', async (req, res, next) => {
-    const lookbackDaysParam = req.query.lookbackDays as string | undefined;
-    const lookbackDays = lookbackDaysParam
-      ? parseInt(lookbackDaysParam, 10)
-      : pluginConfig.defaultLookbackDays;
+  router.get('/metrics', async (_, res, next) => {
+    const lookbackDays = pluginConfig.defaultLookbackDays;
     if (useMockData) {
       const metrics = buildMockMetrics({
         repoCoordinates,

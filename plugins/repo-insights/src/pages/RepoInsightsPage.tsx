@@ -40,8 +40,7 @@ export const RepoInsightsPage = () => {
       : [...base, defaultLookback].sort((a, b) => a - b);
   }, [defaultLookback]);
 
-  const { data, loading, error, refresh } =
-    useRepoInsightsMetrics(lookbackDays);
+  const { data, loading, error, refresh } = useRepoInsightsMetrics();
 
   const hasData = useMemo(() => {
     if (!data) {
