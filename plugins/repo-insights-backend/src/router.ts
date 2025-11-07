@@ -10,14 +10,11 @@ import {
   aggregateVolatility,
   createChangesByFile,
 } from './aggregate';
-import { TTLCache } from './cache';
 import { parseRepoUrl, readRepoInsightsConfig } from './config';
 import { createGithubClient, resolveGithubToken } from './githubClient';
 import { buildMockMetrics } from './mockData';
 import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
 
-const metricsCache = new TTLCache<RepoInsightsMetrics>(15 * 60 * 1000);
-const MAX_COMMITS_PER_WINDOW = 2500;
 const DETAIL_CONCURRENCY = 10;
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
@@ -41,7 +38,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
   const router = Router();
   const pluginConfig = readRepoInsightsConfig(config);
   const repoCoordinates = parseRepoUrl(pluginConfig.repoUrl);
-  const repoKey = `${repoCoordinates.owner}/${repoCoordinates.repo}`;
   const useMockData = pluginConfig.useMockData ?? false;
   const octokit = useMockData
     ? undefined
@@ -49,49 +45,19 @@ export async function createRouter({ logger, config }: RouterDeps) {
         token: resolveGithubToken(pluginConfig.githubTokenEnv),
         logger,
       });
-  const winstonLogger = loggerToWinstonLogger(logger);
 
   router.get('/metrics', async (req, res, next) => {
     const lookbackDaysParam = req.query.lookbackDays as string | undefined;
-
-    let lookbackDays: number;
-    try {
-      lookbackDays = parseLookbackDays(
-        lookbackDaysParam,
-        pluginConfig.defaultLookbackDays,
-      );
-    } catch (error) {
-      const message =
-        error instanceof InputError ? error.message : 'Invalid lookbackDays';
-      res.status(400).json({ error: message });
-      return;
-    }
-
-    const cacheKey = `${repoKey}:${lookbackDays}`;
-    const cached = metricsCache.get(cacheKey);
-    if (cached) {
-      return res.json(cached);
-    }
-
+    const lookbackDays = lookbackDaysParam
+      ? parseInt(lookbackDaysParam, 10)
+      : pluginConfig.defaultLookbackDays;
     if (useMockData) {
       const metrics = buildMockMetrics({
         repoCoordinates,
         repoUrl: pluginConfig.repoUrl,
         lookbackDays,
       });
-      metricsCache.set(cacheKey, metrics);
-      winstonLogger.debug('repo-insights mock metrics served', {
-        repo: repoKey,
-        lookbackDays,
-      });
       return res.json(metrics);
-    }
-
-    if (!octokit) {
-      res
-        .status(500)
-        .json({ error: 'GitHub client is not configured for repo-insights' });
-      return;
     }
 
     try {
@@ -140,64 +106,14 @@ export async function createRouter({ logger, config }: RouterDeps) {
         contributionTrend,
         partial: previousWindow.truncated || currentWindow.truncated,
       };
-
-      metricsCache.set(cacheKey, metrics);
-      winstonLogger.info('repo-insights metrics generated', {
-        repo: repoKey,
-        lookbackDays,
-        volatilityCount: volatility.length,
-        busFactorCount: busFactor.length,
-        currentCommits: currentCommits.length,
-        previousCommits: previousCommits.length,
-      });
-
       return res.json(metrics);
     } catch (error) {
-      if (isRateLimitError(error)) {
-        const cachedFallback = metricsCache.get(cacheKey);
-        if (cachedFallback) {
-          return res.json({ ...cachedFallback, partial: true });
-        }
-        res.status(429).json({
-          error: 'GitHub API rate limit exceeded',
-          message:
-            'GitHub is rate-limiting requests and no cached metrics are available. Please retry later.',
-        });
-        return;
-      }
-
-      if (error instanceof InputError) {
-        res.status(400).json({ error: error.message });
-        return;
-      }
-
-      winstonLogger.error('repo-insights metrics failed', {
-        repo: repoKey,
-        lookbackDays,
-        error,
-      });
       next(error);
       return;
     }
   });
 
   return router;
-}
-
-function parseLookbackDays(
-  value: string | undefined,
-  fallback: number,
-): number {
-  if (value === undefined) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new InputError('lookbackDays must be a positive integer');
-  }
-
-  return Math.min(Math.floor(parsed), 365);
 }
 
 async function fetchRepoMetadata(
@@ -225,7 +141,6 @@ async function fetchCommitsWindow(
   window: { since: string; until: string },
 ): Promise<WindowResult> {
   const commits: CommitListItem[] = [];
-  let truncated = false;
 
   for await (const response of octokit.paginate.iterator(
     'GET /repos/{owner}/{repo}/commits',
@@ -254,19 +169,10 @@ async function fetchCommitsWindow(
           item.commit?.author?.name ??
           'unknown',
       });
-
-      if (commits.length >= MAX_COMMITS_PER_WINDOW) {
-        truncated = true;
-        break;
-      }
-    }
-
-    if (truncated) {
-      break;
     }
   }
 
-  return { commits, truncated };
+  return { commits, truncated: false };
 }
 
 async function hydrateCommits(
@@ -310,36 +216,4 @@ async function hydrateCommits(
   );
 
   return hydrated;
-}
-
-function isRateLimitError(error: unknown): boolean {
-  if (
-    typeof error === 'object' &&
-    error &&
-    'status' in error &&
-    (error as { status?: number }).status === 403
-  ) {
-    const message =
-      (error as { message?: string }).message?.toLowerCase() ?? '';
-    const headers = (
-      error as { response?: { headers?: Record<string, string> } }
-    ).response?.headers;
-    if (headers?.['x-ratelimit-remaining'] === '0') {
-      return true;
-    }
-    if (message.includes('rate limit') || message.includes('api rate limit')) {
-      return true;
-    }
-  }
-
-  if (
-    typeof error === 'object' &&
-    error &&
-    'status' in error &&
-    (error as { status?: number }).status === 429
-  ) {
-    return true;
-  }
-
-  return false;
 }
