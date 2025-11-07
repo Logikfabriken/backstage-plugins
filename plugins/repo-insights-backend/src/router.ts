@@ -72,21 +72,28 @@ export async function createRouter({ logger, config }: RouterDeps) {
         currentSince.getTime() - lookbackDays * MS_IN_DAY,
       );
 
-      const [previousWindow, currentWindow] = await Promise.all([
-        fetchCommitsWindow(octokit, repoCoordinates, repo.defaultBranch, {
-          since: previousSince.toISOString(),
-          until: currentSince.toISOString(),
-        }),
-        fetchCommitsWindow(octokit, repoCoordinates, repo.defaultBranch, {
-          since: currentSince.toISOString(),
-          until: now.toISOString(),
-        }),
-      ]);
+      // Fetch all commits (no since/until) and split into previous/current by date
+      const allWindow = await fetchCommitsWindow(
+        octokit,
+        repoCoordinates,
+        repo.defaultBranch,
+      );
 
-      const [previousCommits, currentCommits] = await Promise.all([
-        hydrateCommits(octokit, repoCoordinates, previousWindow.commits),
-        hydrateCommits(octokit, repoCoordinates, currentWindow.commits),
-      ]);
+      const allHydrated = await hydrateCommits(
+        octokit,
+        repoCoordinates,
+        allWindow.commits,
+      );
+
+      const previousCommits = allHydrated.filter(c => {
+        const d = new Date(c.committedAt);
+        return d >= previousSince && d < currentSince;
+      });
+
+      const currentCommits = allHydrated.filter(c => {
+        const d = new Date(c.committedAt);
+        return d >= currentSince && d <= now;
+      });
 
       const changesByFile = createChangesByFile(currentCommits);
       const volatility = aggregateVolatility(changesByFile);
@@ -104,7 +111,7 @@ export async function createRouter({ logger, config }: RouterDeps) {
         volatility,
         busFactor,
         contributionTrend,
-        partial: previousWindow.truncated || currentWindow.truncated,
+        partial: allWindow.truncated,
       };
       return res.json(metrics);
     } catch (error) {
@@ -138,20 +145,19 @@ async function fetchCommitsWindow(
   octokit: ReturnType<typeof createGithubClient>,
   coords: { owner: string; repo: string },
   branch: string,
-  window: { since: string; until: string },
 ): Promise<WindowResult> {
   const commits: CommitListItem[] = [];
 
+  const params: Record<string, unknown> = {
+    owner: coords.owner,
+    repo: coords.repo,
+    sha: branch,
+    per_page: 100,
+  };
+
   for await (const response of octokit.paginate.iterator(
     'GET /repos/{owner}/{repo}/commits',
-    {
-      owner: coords.owner,
-      repo: coords.repo,
-      sha: branch,
-      since: window.since,
-      until: window.until,
-      per_page: 100,
-    },
+    params,
   )) {
     for (const item of response.data) {
       if (!item.sha) {
