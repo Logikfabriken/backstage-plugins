@@ -41,27 +41,26 @@ export async function createRouter({ logger, config }: RouterDeps) {
 
   router.get('/metrics', async (_, res, next) => {
     try {
+      const useMockData = config.getBoolean('repoInsights.useMockData');
       const repo: RepoRef = {
         owner: repoCoordinates.owner,
         name: repoCoordinates.repo,
         defaultBranch: 'main',
         url: pluginConfig.repoUrl,
       };
-
-      // // Fetch all commits (no since/until) and split into previous/current by date
-      // const allWindow = await fetchCommitsWindow(
-      //   octokit,
-      //   repoCoordinates,
-      //   repo.defaultBranch,
-      // );
-
-      // const allHydrated = await hydrateCommits(
-      //   octokit,
-      //   repoCoordinates,
-      //   allWindow.commits,
-      // );
-
-      const allHydrated = mockData;
+      const allHydrated = useMockData
+        ? mockData
+        : await hydrateCommits(
+            octokit,
+            repoCoordinates,
+            (
+              await fetchCommitsWindow(
+                octokit,
+                repoCoordinates,
+                repo.defaultBranch,
+              )
+            ).commits,
+          );
 
       const changesByFile = createChangesByFile(allHydrated);
       const volatility = aggregateVolatility(changesByFile);
