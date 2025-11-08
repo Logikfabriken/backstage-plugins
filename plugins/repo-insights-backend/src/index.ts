@@ -1,1 +1,1 @@
-export { repoInsightsBackendModule as default } from './module';
+export { repoInsightsBackendPlugin as default } from './plugin';

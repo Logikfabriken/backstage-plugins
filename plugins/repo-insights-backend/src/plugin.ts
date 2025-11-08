@@ -4,7 +4,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
 
-export const repoInsightsBackendModule = createBackendPlugin({
+export const repoInsightsBackendPlugin = createBackendPlugin({
   pluginId: 'repo-insights',
   register(env) {
     env.registerInit({
@@ -20,4 +20,4 @@ export const repoInsightsBackendModule = createBackendPlugin({
   },
 });
 
-export default repoInsightsBackendModule;
+export default repoInsightsBackendPlugin;
