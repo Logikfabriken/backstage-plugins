@@ -1,3 +1,6 @@
+import { LoggerService } from '@backstage/backend-plugin-api';
+import { Config } from '@backstage/config';
+
 export interface RepoRef {
   owner: string;
   name: string;
@@ -54,3 +57,19 @@ export interface CommitSummary {
 }
 
 export type ChangesByFile = Map<string, FileCommitChange[]>;
+
+export type RouterDeps = {
+  logger: LoggerService;
+  config: Config;
+};
+
+export type CommitListItem = {
+  sha: string;
+  committedAt: string;
+  author: string;
+};
+
+export type WindowResult = {
+  commits: CommitListItem[];
+  truncated: boolean;
+};

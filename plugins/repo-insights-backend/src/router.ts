@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import { Config } from '@backstage/config';
-import { LoggerService } from '@backstage/backend-plugin-api';
 import pLimit from 'p-limit';
 import {
   aggregateBusFactor,
@@ -10,25 +8,16 @@ import {
 import { parseRepoUrl, readRepoInsightsConfig } from './config';
 import { createGithubClient, resolveGithubToken } from './githubClient';
 import { mockData } from './mockData';
-import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
+import {
+  CommitListItem,
+  CommitSummary,
+  RepoInsightsMetrics,
+  RepoRef,
+  RouterDeps,
+  WindowResult,
+} from './types';
 
 const DETAIL_CONCURRENCY = 10;
-
-type RouterDeps = {
-  logger: LoggerService;
-  config: Config;
-};
-
-type CommitListItem = {
-  sha: string;
-  committedAt: string;
-  author: string;
-};
-
-type WindowResult = {
-  commits: CommitListItem[];
-  truncated: boolean;
-};
 
 export async function createRouter({ logger, config }: RouterDeps) {
   const router = Router();
