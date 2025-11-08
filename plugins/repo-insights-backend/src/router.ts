@@ -10,7 +10,7 @@ import {
 } from './aggregate';
 import { parseRepoUrl, readRepoInsightsConfig } from './config';
 import { createGithubClient, resolveGithubToken } from './githubClient';
-import { buildMockMetrics } from './mockData';
+import { buildMockMetrics, mockData } from './mockData';
 import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
 
 const DETAIL_CONCURRENCY = 10;
@@ -216,5 +216,5 @@ async function hydrateCommits(
     ),
   );
 
-  return hydrated;
+  return mockData;
 }

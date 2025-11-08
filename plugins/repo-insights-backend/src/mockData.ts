@@ -1,143 +1,98 @@
-import { RepoCoordinates } from './config';
-import {
-  BusFactorEntry,
-  ContributionTrend,
-  RepoInsightsMetrics,
-  TrendPoint,
-  VolatilityEntry,
-} from './types';
-
-const MS_IN_DAY = 24 * 60 * 60 * 1000;
-const MONTH_SERIES_LENGTH = 6;
-
-const VOLATILITY_TEMPLATE: Array<{
-  path: string;
-  commitCount: number;
-  lastCommitOffsetDays: number;
-}> = [
-  { path: 'services/coffee/src/index.ts', commitCount: 18, lastCommitOffsetDays: 3 },
-  { path: 'services/coffee/src/menu.ts', commitCount: 15, lastCommitOffsetDays: 8 },
-  { path: 'packages/caffeine-core/index.ts', commitCount: 12, lastCommitOffsetDays: 11 },
-  { path: 'apps/kiosk/src/components/Checkout.tsx', commitCount: 9, lastCommitOffsetDays: 14 },
-  { path: 'infrastructure/terraform/service.tf', commitCount: 8, lastCommitOffsetDays: 16 },
+export const mockData = [
+  {
+    sha: '1f3a74ec84f7248d42a0181b670c2c163c512185',
+    committedAt: '2024-06-18T08:42:35Z',
+    author: 'MrOfBrightside',
+    files: ['expenses_data.json'],
+  },
+  {
+    sha: '24f5d60615956de3b4dc477b61d4050deb1f0cbd',
+    committedAt: '2024-06-18T08:41:05Z',
+    author: 'MrOfBrightside',
+    files: ['expenses_data.txt'],
+  },
+  {
+    sha: 'e95e61e5316da2a96fc513ba5103525165c6adeb',
+    committedAt: '2024-06-18T08:40:42Z',
+    author: 'MrOfBrightside',
+    files: ['expenses_data.json'],
+  },
+  {
+    sha: '3b99d2a2ded4298033372f1002e71978c01b68fa',
+    committedAt: '2024-06-13T10:38:19Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '09d44ae8cc0750ed7220335a07763f89cb3fb63e',
+    committedAt: '2024-06-13T10:31:35Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '5e208fa090a33198e47e5c9c0b037007915ce1c6',
+    committedAt: '2024-06-13T10:31:12Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '9503616a6ff7c8ada3e701c84eb63a464698e503',
+    committedAt: '2024-06-13T10:29:12Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: 'e73c4ee54ff36c389a24bbe19995bfe024d511de',
+    committedAt: '2024-06-13T10:28:17Z',
+    author: 'MrOfBrightside',
+    files: ['expenses_data.json'],
+  },
+  {
+    sha: '0a3a9b6eb6b23465cbb51e0e609ececcc592840f',
+    committedAt: '2024-06-13T10:25:56Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '5e6dc9cc3b7188037836a18abce1d80d10771f5e',
+    committedAt: '2024-06-13T10:24:31Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '727d74a3549d03daad30af9641be265bb53e05b1',
+    committedAt: '2024-06-13T10:22:41Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '398b70963443a365af006d18978a69117bd16561',
+    committedAt: '2024-06-13T08:27:11Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '336331ecc96c3ef8dfe9cc02f351896ce3a86eb3',
+    committedAt: '2024-06-13T08:25:12Z',
+    author: 'MrOfBrightside',
+    files: ['expenses_data.txt'],
+  },
+  {
+    sha: '116d5bdb7f4cde15bd29ad3a417d48a1218647d2',
+    committedAt: '2024-06-13T07:53:01Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '9409c062ebc795f12fb70c16488778f1eb8c0605',
+    committedAt: '2024-06-13T07:42:57Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
+  {
+    sha: '1e162c8ab9590c43cf0ffb4c01589532fdf5d7c8',
+    committedAt: '2024-06-13T07:33:10Z',
+    author: 'MrOfBrightside',
+    files: ['README.md'],
+  },
 ];
-
-const BUS_FACTOR_TEMPLATE: BusFactorEntry[] = [
-  {
-    path: 'services/coffee/src/index.ts',
-    distinctAuthors: 4,
-    topAuthor: 'ada.l',
-    topAuthorShare: 0.44,
-  },
-  {
-    path: 'services/coffee/src/menu.ts',
-    distinctAuthors: 3,
-    topAuthor: 'linus.p',
-    topAuthorShare: 0.53,
-  },
-  {
-    path: 'packages/caffeine-core/index.ts',
-    distinctAuthors: 5,
-    topAuthor: 'samira.k',
-    topAuthorShare: 0.31,
-  },
-  {
-    path: 'apps/kiosk/src/components/Checkout.tsx',
-    distinctAuthors: 2,
-    topAuthor: 'leo.h',
-    topAuthorShare: 0.62,
-  },
-  {
-    path: 'infrastructure/terraform/service.tf',
-    distinctAuthors: 4,
-    topAuthor: 'jules.r',
-    topAuthorShare: 0.29,
-  },
-];
-
-const GLOBAL_COMMITS_TEMPLATE = [28, 33, 41, 35, 24, 30];
-const DIRECTORY_COMMITS_TEMPLATE: Array<{ dir: string; commits: number[] }> = [
-  { dir: 'services', commits: [12, 15, 20, 17, 11, 14] },
-  { dir: 'packages', commits: [9, 10, 12, 10, 7, 9] },
-  { dir: 'apps', commits: [5, 6, 7, 6, 4, 5] },
-  { dir: 'infrastructure', commits: [2, 2, 2, 2, 2, 2] },
-];
-
-export function buildMockMetrics(options: {
-  repoCoordinates: RepoCoordinates;
-  repoUrl: string;
-  lookbackDays: number;
-  now?: Date;
-}): RepoInsightsMetrics {
-  const now = options.now ?? new Date();
-  const repo = {
-    owner: options.repoCoordinates.owner,
-    name: options.repoCoordinates.repo,
-    defaultBranch: 'main',
-    url: options.repoUrl,
-  };
-
-  const volatility = buildVolatilityEntries(now);
-  const busFactor = BUS_FACTOR_TEMPLATE.map(entry => ({ ...entry }));
-  const contributionTrend = buildContributionTrend(now);
-
-  return {
-    generatedAt: now.toISOString(),
-    repo,
-    lookbackDays: options.lookbackDays,
-    volatility,
-    busFactor,
-    contributionTrend,
-    partial: false,
-  };
-}
-
-function buildVolatilityEntries(now: Date): VolatilityEntry[] {
-  return VOLATILITY_TEMPLATE.map(entry => ({
-    path: entry.path,
-    commitCount: entry.commitCount,
-    lastCommitAt: isoDaysAgo(now, entry.lastCommitOffsetDays),
-  }));
-}
-
-function buildContributionTrend(now: Date): ContributionTrend {
-  const months = collectMonths(now, MONTH_SERIES_LENGTH);
-  const globalSeries: TrendPoint[] = months.map((month, index) => ({
-    month,
-    commits: GLOBAL_COMMITS_TEMPLATE[index] ?? GLOBAL_COMMITS_TEMPLATE.at(-1)!,
-  }));
-
-  const perDirectory = DIRECTORY_COMMITS_TEMPLATE.map(dirEntry => ({
-    dir: dirEntry.dir,
-    series: months.map((month, index) => ({
-      month,
-      commits: dirEntry.commits[index] ?? dirEntry.commits.at(-1)!,
-    })),
-  })).sort((a, b) => a.dir.localeCompare(b.dir));
-
-  return {
-    global: { series: globalSeries },
-    perDirectory,
-  };
-}
-
-function collectMonths(now: Date, count: number): string[] {
-  const months: string[] = [];
-  for (let offset = count - 1; offset >= 0; offset -= 1) {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    date.setUTCMonth(date.getUTCMonth() - offset);
-    months.push(formatMonth(date));
-  }
-  return months;
-}
-
-function isoDaysAgo(now: Date, daysAgo: number): string {
-  const date = new Date(now.getTime() - daysAgo * MS_IN_DAY);
-  return date.toISOString();
-}
-
-function formatMonth(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
-  return `${year}-${month}`;
-}
