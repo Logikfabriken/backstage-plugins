@@ -37,7 +37,6 @@ export interface RepoInsightsMetricsResponse {
   generatedAt: string;
   repo: RepoSummary;
   lookbackDays: number;
-  partial: boolean;
   volatility: VolatilityEntry[];
   busFactor: BusFactorEntry[];
   contributionTrend: ContributionTrend;

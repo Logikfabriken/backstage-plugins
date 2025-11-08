@@ -51,7 +51,6 @@ export interface RepoInsightsMetrics {
   volatility: VolatilityEntry[];
   busFactor: BusFactorEntry[];
   contributionTrend: ContributionTrend;
-  partial: boolean;
 }
 
 export interface CommitSummary {

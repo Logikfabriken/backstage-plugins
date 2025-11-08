@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Button, Grid, Typography, makeStyles } from '@material-ui/core';
+import { useMemo } from 'react';
+import { Grid, Typography, makeStyles } from '@material-ui/core';
 import {
   Content,
   ContentHeader,
@@ -10,11 +10,9 @@ import {
   Page,
   Progress,
   ResponseErrorPanel,
-  WarningPanel,
 } from '@backstage/core-components';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { ContributionTrend } from '../components/ContributionTrend';
-import { LookbackControls } from '../components/LookbackControls';
 import { VolatilityTable } from '../components/VolatilityTable';
 import { BusFactorTable } from '../components/BusFactorTable';
 import { useRepoInsightsMetrics } from '../hooks/useRepoInsightsMetrics';
@@ -30,17 +28,7 @@ export const RepoInsightsPage = () => {
   const classes = useStyles();
   const config = useApi(configApiRef);
   const repoUrl = config.getOptionalString('repoInsights.repoUrl');
-  const defaultLookback =
-    config.getOptionalNumber('repoInsights.defaultLookbackDays') ?? 90;
-  const [lookbackDays, setLookbackDays] = useState(defaultLookback);
-  const lookbackOptions = useMemo(() => {
-    const base = [30, 60, 90, 180];
-    return base.includes(defaultLookback)
-      ? base
-      : [...base, defaultLookback].sort((a, b) => a - b);
-  }, [defaultLookback]);
-
-  const { data, loading, error, refresh } = useRepoInsightsMetrics();
+  const { data, loading, error } = useRepoInsightsMetrics();
 
   const hasData = useMemo(() => {
     if (!data) {
@@ -71,7 +59,6 @@ export const RepoInsightsPage = () => {
   return (
     <Page themeId="tool">
       <Header title="Repo Insights" subtitle={repoUrl}>
-        <HeaderLabel label="Lookback" value={`${lookbackDays} days`} />
         {data?.repo?.defaultBranch && (
           <HeaderLabel label="Default branch" value={data.repo.defaultBranch} />
         )}
@@ -83,24 +70,9 @@ export const RepoInsightsPage = () => {
         )}
       </Header>
       <Content>
-        <ContentHeader title="Repository health">
-          <LookbackControls
-            value={lookbackDays}
-            onChange={setLookbackDays}
-            options={lookbackOptions}
-          />
-          <Button variant="outlined" onClick={refresh} disabled={loading}>
-            Refresh
-          </Button>
-        </ContentHeader>
+        <ContentHeader title="Repository health"></ContentHeader>
         {loading && !data && <Progress />}
         {error && <ResponseErrorPanel error={error} />}
-        {data?.partial && (
-          <WarningPanel title="Partial data">
-            GitHub rate limits truncated this window. Cached metrics are shown
-            and may exclude the most recent commits.
-          </WarningPanel>
-        )}
         {!loading && !error && data && !hasData && (
           <EmptyState
             title="No activity in this window"

@@ -10,7 +10,7 @@ import {
 } from './aggregate';
 import { parseRepoUrl, readRepoInsightsConfig } from './config';
 import { createGithubClient, resolveGithubToken } from './githubClient';
-import { buildMockMetrics, mockData } from './mockData';
+import { mockData } from './mockData';
 import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
 
 const DETAIL_CONCURRENCY = 10;
@@ -36,49 +36,41 @@ export async function createRouter({ logger, config }: RouterDeps) {
   const router = Router();
   const pluginConfig = readRepoInsightsConfig(config);
   const repoCoordinates = parseRepoUrl(pluginConfig.repoUrl);
-  const useMockData = pluginConfig.useMockData ?? false;
-  const octokit = useMockData
-    ? undefined
-    : createGithubClient({
-        token: resolveGithubToken(pluginConfig.githubTokenEnv),
-        logger,
-      });
+  const octokit = createGithubClient({
+    token: resolveGithubToken(pluginConfig.githubTokenEnv),
+    logger,
+  });
 
   router.get('/metrics', async (_, res, next) => {
     const lookbackDays = pluginConfig.defaultLookbackDays;
-    if (useMockData) {
-      const metrics = buildMockMetrics({
-        repoCoordinates,
-        repoUrl: pluginConfig.repoUrl,
-        lookbackDays,
-      });
-      return res.json(metrics);
-    }
 
     try {
-      const repo = await fetchRepoMetadata(
-        octokit,
-        repoCoordinates,
-        pluginConfig.repoUrl,
-      );
+      const repo: RepoRef = {
+        owner: repoCoordinates.owner,
+        name: repoCoordinates.repo,
+        defaultBranch: 'main',
+        url: pluginConfig.repoUrl,
+      };
       const now = new Date();
       const currentSince = new Date(now.getTime() - lookbackDays * MS_IN_DAY);
       const previousSince = new Date(
         currentSince.getTime() - lookbackDays * MS_IN_DAY,
       );
 
-      // Fetch all commits (no since/until) and split into previous/current by date
-      const allWindow = await fetchCommitsWindow(
-        octokit,
-        repoCoordinates,
-        repo.defaultBranch,
-      );
+      // // Fetch all commits (no since/until) and split into previous/current by date
+      // const allWindow = await fetchCommitsWindow(
+      //   octokit,
+      //   repoCoordinates,
+      //   repo.defaultBranch,
+      // );
 
-      const allHydrated = await hydrateCommits(
-        octokit,
-        repoCoordinates,
-        allWindow.commits,
-      );
+      // const allHydrated = await hydrateCommits(
+      //   octokit,
+      //   repoCoordinates,
+      //   allWindow.commits,
+      // );
+
+      const allHydrated = mockData;
 
       const previousCommits = allHydrated.filter(c => {
         const d = new Date(c.committedAt);
@@ -106,7 +98,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
         volatility,
         busFactor,
         contributionTrend,
-        partial: allWindow.truncated,
       };
       return res.json(metrics);
     } catch (error) {
@@ -116,24 +107,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
   });
 
   return router;
-}
-
-async function fetchRepoMetadata(
-  octokit: ReturnType<typeof createGithubClient>,
-  coords: { owner: string; repo: string },
-  url: string,
-): Promise<RepoRef> {
-  const response = await octokit.request('GET /repos/{owner}/{repo}', {
-    owner: coords.owner,
-    repo: coords.repo,
-  });
-
-  return {
-    owner: response.data.owner?.login ?? coords.owner,
-    name: response.data.name ?? coords.repo,
-    defaultBranch: response.data.default_branch ?? 'main',
-    url,
-  };
 }
 
 async function fetchCommitsWindow(
@@ -216,5 +189,5 @@ async function hydrateCommits(
     ),
   );
 
-  return mockData;
+  return hydrated;
 }
