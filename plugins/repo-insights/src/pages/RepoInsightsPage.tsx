@@ -12,7 +12,6 @@ import {
   ResponseErrorPanel,
 } from '@backstage/core-components';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
-import { ContributionTrend } from '../components/ContributionTrend';
 import { VolatilityTable } from '../components/VolatilityTable';
 import { BusFactorTable } from '../components/BusFactorTable';
 import { useRepoInsightsMetrics } from '../hooks/useRepoInsightsMetrics';
