@@ -34,12 +34,7 @@ export const RepoInsightsPage = () => {
     if (!data) {
       return false;
     }
-    const trendHasCommits = data.contributionTrend.global.series.some(
-      point => point.commits > 0,
-    );
-    return (
-      data.volatility.length > 0 || data.busFactor.length > 0 || trendHasCommits
-    );
+    return data.volatility.length > 0 || data.busFactor.length > 0;
   }, [data]);
 
   if (!repoUrl) {
@@ -98,9 +93,6 @@ export const RepoInsightsPage = () => {
               >
                 <BusFactorTable rows={data.busFactor} />
               </InfoCard>
-            </Grid>
-            <Grid item xs={12} className={classes.section}>
-              <ContributionTrend trend={data.contributionTrend} />
             </Grid>
           </Grid>
         )}

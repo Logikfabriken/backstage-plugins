@@ -1,4 +1,6 @@
-export const mockData = [
+import { CommitSummary } from './types';
+
+export const mockData: CommitSummary[] = [
   {
     sha: '1f3a74ec84f7248d42a0181b670c2c163c512185',
     committedAt: '2024-06-18T08:42:35Z',

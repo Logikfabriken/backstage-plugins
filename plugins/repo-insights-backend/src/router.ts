@@ -4,7 +4,6 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import pLimit from 'p-limit';
 import {
   aggregateBusFactor,
-  aggregateContributionTrend,
   aggregateVolatility,
   createChangesByFile,
 } from './aggregate';
@@ -14,7 +13,6 @@ import { mockData } from './mockData';
 import { CommitSummary, RepoInsightsMetrics, RepoRef } from './types';
 
 const DETAIL_CONCURRENCY = 10;
-const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 type RouterDeps = {
   logger: LoggerService;
@@ -51,11 +49,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
         defaultBranch: 'main',
         url: pluginConfig.repoUrl,
       };
-      const now = new Date();
-      const currentSince = new Date(now.getTime() - lookbackDays * MS_IN_DAY);
-      const previousSince = new Date(
-        currentSince.getTime() - lookbackDays * MS_IN_DAY,
-      );
 
       // // Fetch all commits (no since/until) and split into previous/current by date
       // const allWindow = await fetchCommitsWindow(
@@ -72,24 +65,9 @@ export async function createRouter({ logger, config }: RouterDeps) {
 
       const allHydrated = mockData;
 
-      const previousCommits = allHydrated.filter(c => {
-        const d = new Date(c.committedAt);
-        return d >= previousSince && d < currentSince;
-      });
-
-      const currentCommits = allHydrated.filter(c => {
-        const d = new Date(c.committedAt);
-        return d >= currentSince && d <= now;
-      });
-
-      const changesByFile = createChangesByFile(currentCommits);
+      const changesByFile = createChangesByFile(allHydrated);
       const volatility = aggregateVolatility(changesByFile);
       const busFactor = aggregateBusFactor(changesByFile);
-      const contributionTrend = aggregateContributionTrend({
-        current: currentCommits,
-        previous: previousCommits,
-        lookbackDays,
-      });
 
       const metrics: RepoInsightsMetrics = {
         generatedAt: new Date().toISOString(),
@@ -97,7 +75,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
         lookbackDays,
         volatility,
         busFactor,
-        contributionTrend,
       };
       return res.json(metrics);
     } catch (error) {

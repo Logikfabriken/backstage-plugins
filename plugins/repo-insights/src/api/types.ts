@@ -28,16 +28,10 @@ export interface DirectoryTrend {
   series: TrendPoint[];
 }
 
-export interface ContributionTrend {
-  global: { series: TrendPoint[] };
-  perDirectory: DirectoryTrend[];
-}
-
 export interface RepoInsightsMetricsResponse {
   generatedAt: string;
   repo: RepoSummary;
   lookbackDays: number;
   volatility: VolatilityEntry[];
   busFactor: BusFactorEntry[];
-  contributionTrend: ContributionTrend;
 }
