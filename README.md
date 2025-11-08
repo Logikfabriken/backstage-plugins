@@ -23,14 +23,11 @@ Add the following block to your configuration (already present in
 ```yaml
 repoInsights:
   repoUrl: https://github.com/backstage/backstage # required
-  defaultLookbackDays: 90 # optional, default 90
   githubTokenEnv: GITHUB_TOKEN # optional, default GITHUB_TOKEN
 ```
 
 - `repoUrl` must point to a public GitHub repository in the form
   `https://github.com/owner/name`.
-- `defaultLookbackDays` controls the initial window the UI uses (30/60/90/180
-  selectors are provided, but the backend accepts any value up to 365).
 - `githubTokenEnv` lets you point at an environment variable containing a
   Personal Access Token to increase GitHub rate limits. The plugin also works
   without a token (with lower limits).

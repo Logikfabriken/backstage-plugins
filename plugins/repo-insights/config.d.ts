@@ -8,11 +8,5 @@ export interface Config {
      * @visibility frontend
      */
     repoUrl?: string;
-    /**
-     * Default lookback window (in days) for metrics.
-     * @visibility frontend
-     */
-    defaultLookbackDays?: number;
   };
 }
-

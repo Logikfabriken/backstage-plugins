@@ -40,8 +40,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
   });
 
   router.get('/metrics', async (_, res, next) => {
-    const lookbackDays = pluginConfig.defaultLookbackDays;
-
     try {
       const repo: RepoRef = {
         owner: repoCoordinates.owner,
@@ -72,7 +70,6 @@ export async function createRouter({ logger, config }: RouterDeps) {
       const metrics: RepoInsightsMetrics = {
         generatedAt: new Date().toISOString(),
         repo,
-        lookbackDays,
         volatility,
         busFactor,
       };

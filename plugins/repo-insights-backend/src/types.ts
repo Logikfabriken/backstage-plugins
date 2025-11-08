@@ -42,7 +42,6 @@ export interface DirectoryTrend {
 export interface RepoInsightsMetrics {
   generatedAt: string;
   repo: RepoRef;
-  lookbackDays: number;
   volatility: VolatilityEntry[];
   busFactor: BusFactorEntry[];
 }
